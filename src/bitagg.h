@@ -42,9 +42,9 @@
 
 // :: bitaggregate -> size_t -> out size_t -> ()
 #define bitpopcount(_arr, _size, _res) \
-    for ( size_t _i = 0; _i < (_size); ++ _i ) { \
+    do { for ( size_t _i = 0; _i < (_size); ++ _i ) { \
         (_res) += getbit(_arr, _i); \
-    }
+    } } while ( false )
 
 #endif // BIT_AGGREGATE_H
 
