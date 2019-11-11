@@ -16,9 +16,11 @@
         decl_bitbuffer(type, data); \
     }
 
+// :: size_t -> double -> double
 #define bitbloom_optimal_m(_expected, _acceptable) \
     llround((-(_expected)) * log(_acceptable) / (log(2) * log(2)))
 
+// :: size_t -> double -> double
 #define bitbloom_optimal_k(_expected, _m) \
     llround(((_m) / (_expected)) * log(2))
 

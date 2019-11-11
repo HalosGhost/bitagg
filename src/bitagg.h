@@ -5,8 +5,11 @@
 
 #include <limits.h>
 
+// :: a -> size_t
 #define bitsof(x) (sizeof(x) * CHAR_BIT)
+// :: T -> size_t -> size_t
 #define members_needed(type, length) (((length) + bitsof(type) - 1) / bitsof(type))
+// :: T -> size_t -> size_t
 #define bytes_needed(type, length) (members_needed(type, length) * sizeof(type))
 
 #define decl_bitarray(type, name, length) type name [members_needed(type, (length))]
@@ -27,11 +30,13 @@
 
 #define primbitop(arr, idx, op) ((arr)[(idx) / bitsof(*(arr))] op (1 << ((idx) % bitsof(*(arr)))))
 
+// :: [a] -> size_t -> a
 #define getbit(arr, idx)    (!!primbitop((arr), (idx), &   ))
 #define setbit(arr, idx)       primbitop((arr), (idx), |=  )
 #define clearbit(arr, idx)     primbitop((arr), (idx), &= ~)
 #define togglebit(arr, idx)    primbitop((arr), (idx), ^=  )
 
+// :: [a] -> size_t -> bool -> a
 #define assignbit(arr, idx, val) \
     ((val) ? setbit((arr), (idx)) : clearbit((arr), (idx)))
 
