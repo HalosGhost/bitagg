@@ -1,7 +1,7 @@
 CC ?= clang
 CFLAGS ?= -g -ggdb -O3 -fPIE -flto -fstack-protector-strong --param=ssp-buffer-size=1 -Wno-reserved-id-macro -Wall -Wextra -Wpedantic -Werror -std=c18 -fsanitize=undefined
 LDFLAGS += -lm -lxxhash
-VER = `git describe --long --tags | sed 's/\([^-]*-g\)/r\1/;s/-/./g'`
+VER = `printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"`
 FMFLAGS = -wp -then -wp -wp-rte
 
 ifneq ($(CC), tcc)
