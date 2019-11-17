@@ -28,7 +28,7 @@
  * them any expression that causes a side-effect is unsafe.
  */
 
-#define primbitop(arr, idx, op) ((arr)[(idx) / bitsof(*(arr))] op (1 << ((idx) % bitsof(*(arr)))))
+#define primbitop(arr, idx, op) ((arr)[(idx) / bitsof(*(arr))] op (1ull << ((idx) % bitsof(*(arr)))))
 
 // :: [a] -> size_t -> a
 #define getbit(arr, idx)    (!!primbitop((arr), (idx), &   ))
