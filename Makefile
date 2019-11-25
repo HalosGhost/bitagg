@@ -9,7 +9,7 @@ MKDIR  ?= mkdir -p
 
 include Makerules
 
-.PHONY: all bin clean scan-build cov-build complexity doc verify install uninstall
+.PHONY: all bin clean scan-build cov-build complexity verify install uninstall
 
 all: dist bin
 
@@ -24,13 +24,6 @@ clean:
 
 dist:
 	@$(MKDIR) ./dist
-
-doc: dist
-	@(cd doc; \
-		sphinx-build -b man -Dversion=$(VER) \
-			-d doctree -E . ../dist $(PROGNM).rst; \
-		rm -r -- doctree; \
-	)
 
 cov-build: dist
 	@cov-build --dir cov-int ./make.sh
