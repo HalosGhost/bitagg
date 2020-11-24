@@ -27,7 +27,7 @@ main (void) {
     printf("%s may be in set: %d\n", "stuf", res);
 
     size_t pop = 0;
-    bitpopcount(bloom.data, bloom.bits, pop);
+    ubitpopcount(bloom.data, bloom.bits, pop);
     printf("popcount: %zu\n", pop);
 
     double elements = 0;
