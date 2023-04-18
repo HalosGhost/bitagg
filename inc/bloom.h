@@ -50,16 +50,6 @@
         for ( size_t i = (_blum).num_hashes; i; usetbit((_blum).data, (top + (i - 1) * bot) % (_blum).bits), -- i ); \
     } while ( false )
 
-// :: bitbloom(Type) -> const char * -> size_t -> out bool -> ()
-#define bloom_elem(_blum, _data, _len, _res) \
-    do { \
-        uint64_t r = XXH64(((char * )(_data)), (_len), 0); \
-        uint32_t top = r & ~((~0UL) >> 32) >> 32; \
-        uint32_t bot = r & (~0UL) >> 32; \
-        _res = true; \
-        for ( size_t i = (_blum).num_hashes; i; _res &= ugetbit((_blum).data, (top + (i - 1) * bot) % (_blum).bits), -- i ); \
-    } while ( false )
-
 // bitbloom(Type) -> out double -> ()
 #define bloom_approximate_count(_blum, _res) \
     do { \
@@ -74,6 +64,19 @@
         double _nstar = 0; \
         bloom_approximate_count((_blum), _nstar); \
         (_res) = pow(1.0 - exp(-((double )(_blum).num_hashes) * _nstar / ((_blum).bits)), ((_blum).num_hashes)); \
+    } while ( false )
+
+// :: bitbloom(Type) -> const char * -> size_t -> out double -> ()
+#define bloom_elem(_blum, _data, _len, _res) \
+    do { \
+        uint64_t r = XXH64(((char * )(_data)), (_len), 0); \
+        uint32_t top = r & ~((~0UL) >> 32) >> 32; \
+        uint32_t bot = r & (~0UL) >> 32; \
+        bool found = true; \
+        for ( size_t i = (_blum).num_hashes; i; found &= ugetbit((_blum).data, (top + (i - 1) * bot) % (_blum).bits), -- i ); \
+        double fp_rate = 0; \
+        bloom_approximate_fp_rate(_blum, fp_rate); \
+        (_res) = found ? (1 - fp_rate) : 0; \
     } while ( false )
 
 #endif
