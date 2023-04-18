@@ -1,5 +1,7 @@
-#if !defined(BIT_BLOOM_FILTER_H)
-#define BIT_BLOOM_FILTER_H
+#ifndef BITAGG_BLOOM_H
+#define BITAGG_BLOOM_H
+
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -7,13 +9,14 @@
 #include <xxhash.h>
 #include <math.h>
 
-#include "bitagg.h"
+#include <common.h>
+#include <vector.h>
 
 // :: Type -> size_t -> Type
-#define bitbloom(type) \
+#define bitbloom(_type) \
     struct { \
         size_t num_hashes, bits; \
-        decl_bitbuffer(type, data); \
+        bitbuffer(_type, data); \
     }
 
 // :: size_t -> double -> size_t
@@ -29,8 +32,14 @@
     { \
         .bits = bitbloom_optimal_m((_expected), (_acceptable)), \
         .num_hashes = bitbloom_optimal_k((_expected), bitbloom_optimal_m((_expected), (_acceptable))), \
-        .data = init_bitbuffer(_type, bitbloom_optimal_m((_expected), (_acceptable))) \
+        .data = bitbuffer_init(_type, bitbloom_optimal_m((_expected), (_acceptable))) \
     }
+
+// :: bitbloom(Type) -> ()
+#define bitbloom_free(_blum) \
+    do { \
+        if ( (_blum).data ) { free((_blum).data); } \
+    } while ( false )
 
 // :: bitbloom(Type) -> const char * -> size_t -> ()
 #define bloom_insert(_blum, _data, _len) \
@@ -59,4 +68,12 @@
         (_res) = ((0.0-(_blum).bits) / ((double )(_blum).num_hashes)) * log(1.0 - ((_popcount) / ((double )(_blum).bits))); \
     } while ( false )
 
-#endif // BIT_BLOOM_FILTER_H
+// bitbloom(Type) -> out double -> ()
+#define bloom_approximate_fp_rate(_blum, _res) \
+    do { \
+        double _nstar = 0; \
+        bloom_approximate_count((_blum), _nstar); \
+        (_res) = pow(1.0 - exp(-((double )(_blum).num_hashes) * _nstar / ((_blum).bits)), ((_blum).num_hashes)); \
+    } while ( false )
+
+#endif

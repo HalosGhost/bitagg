@@ -1,45 +1,90 @@
-PROGNM =  bitagg
-PREFIX ?= /usr/local
-DOCDIR ?= $(DESTDIR)$(PREFIX)/share/man
-LIBDIR ?= $(DESTDIR)$(PREFIX)/lib
-BINDIR ?= $(DESTDIR)$(PREFIX)/bin
-ZSHDIR ?= $(DESTDIR)$(PREFIX)/share/zsh
-BSHDIR ?= $(DESTDIR)$(PREFIX)/share/bash-completions
-MKDIR  ?= mkdir -p
+PRJNM = bitagg
+LIBNM = lib$(PRJNM)
 
-include Makerules
+SO_VER = 0.1
 
-.PHONY: all bin clean scan-build cov-build complexity verify install uninstall
+RTDIR = $(shell git rev-parse --show-toplevel)
 
-all: dist bin
+SRCDIR = src
+TSTDIR = tst
+INCDIR = inc
+BLDDIR = bld
+OBJDIR = $(BLDDIR)/obj
+DEPDIR = dep
 
-bin: dist
-	@$(CC) $(CFLAGS) $(LDFLAGS) src/*.c -DVERSION="\"$(VER)\n\"" -o dist/$(PROGNM)
+CONFIGURED_DEPS = 
 
-check: bin
-	@./test-suite
+CPPFLAGS = -I$(INCDIR)
+CFLAGS = -Og -ggdb3 -Wall -Wextra -Wpedantic -std=gnu18
+LINKFLAGS = -lm -lxxhash
+
+ifneq ($(CONFIGURED_DEPS),)
+CPPFLAGS += $(shell pkg-config --cflags-only-I $(CONFIGURED_DEPS))
+CFLAGS += $(shell pkg-config --cflags-only-other $(CONFIGURED_DEPS))
+LINKFLAGS += $(shell pkg-config --libs $(CONFIGURED_DEPS))
+endif
+
+DATE = $(shell date +'%Y-%b-%d')
+
+MKDIR = @mkdir -p --
+RM = rm -rf --
+LN = ln -sf --
+
+SOURCES = $(patsubst $(SRCDIR)/main.c,,$(wildcard $(SRCDIR)/*))
+OBJECTS = $(patsubst $(SRCDIR)%,$(OBJDIR)%,$(patsubst %.c,%.o,$(SOURCES)))
+DEPENDS = $(patsubst $(SRCDIR)%,$(DEPDIR)%,$(patsubst %.c,%.d,$(SOURCES)))
+
+TESTSRC = $(wildcard $(TSTDIR)/*.c)
+TESTS   = $(patsubst $(TSTDIR)%,$(BLDDIR)/$(TSTDIR)%,$(patsubst %.c,%,$(TESTSRC)))
+
+.PHONY: all clean check $(LIBNM) $(PRJNM)
+
+all: $(LIBNM) check
+
+check: $(TESTS)
+	(for i in $^; do \
+		printf '%s: [ PEND ]' $$i; \
+		if ./$$i; then \
+			printf '\r%s: [ PASS ]\n' $$i; \
+		else \
+			printf '\r%s: [ FAIL ]\n' $$i; \
+		fi; \
+	done)
 
 clean:
-	@rm -rf -- dist cov-int $(PROGNM).tgz make.sh ./src/*.plist
+	$(RM) $(BLDDIR) $(DEPDIR) tags
 
-dist:
-	@$(MKDIR) ./dist
+-include $(DEPENDS)
 
-cov-build: dist
-	@cov-build --dir cov-int ./make.sh
-	@tar czvf $(PROGNM).tgz cov-int
+$(BLDDIR)/$(TSTDIR)/%: $(TSTDIR)/%.c $(BLDDIR)/$(LIBNM).a
+	$(MKDIR) $(@D) $(DEPDIR)
+	$(CC) $(CPPFLAGS) -fPIC $(CFLAGS) $^ -MMD -MP -MF $(DEPDIR)/$(@F).d -o $@ $(LINKFLAGS)
 
-complexity: bin
-	complexity -h ./src/*
+$(OBJDIR)/%.o: $(SRCDIR)/%.c
+	$(MKDIR) $(@D) $(DEPDIR)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -MMD -MP -MF $(DEPDIR)/$(@F:.o=.d) -o $@
 
-scan-build:
-	@scan-build --use-cc=$(CC) make bin
+$(PRJNM): $(BLDDIR)/$(PRJNM)
 
-verify:
-	@frama-c $(FMFLAGS) src/*.c
+$(BLDDIR)/$(PRJNM): $(OBJECTS) $(OBJDIR)/main.o
+	$(MKDIR) $(@D)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $^ $(LINKFLAGS) -L$(BLDDIR) -$(patsubst lib%,l%,$(LIBNM))
 
-install:
-	@install -Dm755 dist/$(PROGNM) $(BINDIR)/$(PROGNM)
+$(LIBNM): $(BLDDIR)/$(LIBNM).so $(BLDDIR)/$(LIBNM).a
 
-uninstall:
-	@rm -f -- $(BINDIR)/$(PROGNM)
+$(BLDDIR)/$(LIBNM).so.$(SO_VER): $(OBJECTS)
+	$(MKDIR) $(@D)
+	$(CC) $(CPPFLAGS) -fPIE $(CFLAGS) -shared -o $@ $^ $(LINKFLAGS) -Wl,-soname,$(@F)
+
+$(BLDDIR)/$(LIBNM).so: $(BLDDIR)/$(LIBNM).so.$(SO_VER)
+	$(MKDIR) $(@D)
+	$(LN) $(shell basename $<) $@
+
+$(BLDDIR)/$(LIBNM).a: $(OBJECTS)
+	$(MKDIR) $(@D)
+	$(AR) rcs $@ $^
+
+tags:
+	find . -type f -iregex '.*\.[ch]\(xx\|pp\)?$$' | xargs ctags -a -f $@
+
+$(V).SILENT:
